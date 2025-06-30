@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cadastro de Marcas</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+      background: #f0f0f0;
+    }
+    h1, h2 {
+      color: #333;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    input, select, textarea {
+      width: 100%;
+      max-width: 400px;
+      padding: 8px;
+      margin-top: 5px;
+      font-size: 16px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+    textarea {
+      resize: vertical;
+    }
+    .botoes-container {
+      margin-top: 20px;
+      max-width: 400px;
+      display: flex;
+      gap: 10px;
+    }
+    button {
+      flex: 1;
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      color: white;
+      transition: background-color 0.3s;
+    }
+    #btnCadastrar {
+      background-color: #007bff;
+    }
+    #btnCadastrar:hover {
+      background-color: #0056b3;
+    }
+    #btnCancelar {
+      background-color: #6c757d;
+      display: none;
+    }
+    #btnCancelar:hover {
+      background-color: #5a6268;
+    }
+    #marcas-list {
+      margin-top: 30px;
+      background: #fff;
+      padding: 15px;
+      border-radius: 6px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+      max-width: 700px;
+    }
+    ul {
+      list-style-type: none;
+      padding-left: 0;
+    }
+    li {
+      background-color: #fafafa;
+      margin-bottom: 12px;
+      padding: 12px;
+      border-radius: 5px;
+      border: 1px solid #ddd;
+      cursor: pointer;
+      position: relative;
+    }
+    li:hover {
+      background-color: #e9f0ff;
+    }
+    .detalhes {
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid #ccc;
+      font-size: 14px;
+      color: #444;
+      background-color: #f9f9f9;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Cadastro de Marcas</h1>
+
+  <label for="numeroProcesso">Número do Processo:</label>
+  <input type="text" id="numeroProcesso" placeholder="Digite o número do processo" />
+
+  <label for="marcaNome">Nome da Marca:</label>
+  <input type="text" id="marcaNome" placeholder="Digite o nome da marca" />
+
+  <label for="titular">Titular:</label>
+  <input type="text" id="titular" placeholder="Digite o titular" />
+
+  <label for="classe">Classe:</label>
+  <input type="text" id="classe" placeholder="Digite a classe" />
+
+  <label for="especificacoes">Especificações:</label>
+  <textarea id="especificacoes" rows="3" placeholder="Digite as especificações"></textarea>
+
+  <label for="status">Status:</label>
+  <select id="status">
+    <option value="Aberto">Aberto</option>
+    <option value="Fechado">Fechado</option>
+    <option value="Negado">Negado</option>
+  </select>
+
+  <label for="observacoes">Observações:</label>
+  <textarea id="observacoes" rows="2" placeholder="Digite observações (opcional)"></textarea>
+
+  <div class="botoes-container">
+    <button id="btnCadastrar" onclick="cadastrarMarca()">Cadastrar Marca</button>
+    <button id="btnCancelar" onclick="cancelarEdicao()">Cancelar Edição</button>
+  </div>
+
+  <h2>Buscar Marca</h2>
+  <input type="text" id="buscaMarca" placeholder="Digite termo para buscar em qualquer campo" oninput="buscarMarca()" />
+
+  <div id="marcas-list"></div>
+
+  <script>
+    let marcas = [];
+    let indiceEdicao = -1;
+
+    function carregarMarcas() {
+      const dados = localStorage.getItem('marcas');
+      marcas = dados ? JSON.parse(dados) : [];
+    }
+
+    function salvarMarcas() {
+      localStorage.setItem('marcas', JSON.stringify(marcas));
+    }
+
+    function limparCampos() {
+      document.getElementById('numeroProcesso').value = '';
+      document.getElementById('marcaNome').value = '';
+      document.getElementById('titular').value = '';
+      document.getElementById('classe').value = '';
+      document.getElementById('especificacoes').value = '';
+      document.getElementById('status').value = 'Aberto';
+      document.getElementById('observacoes').value = '';
+    }
+
+    function cadastrarMarca() {
+      const processo = document.getElementById('numeroProcesso').value.trim();
+      const nome = document.getElementById('marcaNome').value.trim();
+      const titular = document.getElementById('titular').value.trim();
+      const classe = document.getElementById('classe').value.trim();
+      const especificacoes = document.getElementById('especificacoes').value.trim();
+      const status = document.getElementById('status').value;
+      const observacoes = document.getElementById('observacoes').value.trim();
+
+      if (!processo || !nome || !titular || !classe || !especificacoes || !status) {
+        alert('Por favor, preencha todos os campos obrigatórios.');
+        return;
+      }
+
+      if (indiceEdicao > -1) {
+        marcas[indiceEdicao] = { numeroProcesso: processo, nome, titular, classe, especificacoes, status, observacoes };
+        indiceEdicao = -1;
+        document.getElementById('btnCadastrar').textContent = 'Cadastrar Marca';
+        document.getElementById('btnCancelar').style.display = 'none';
+        alert('Marca atualizada com sucesso!');
+      } else {
+        marcas.push({ numeroProcesso: processo, nome, titular, classe, especificacoes, status, observacoes });
+        alert('Marca cadastrada com sucesso!');
+      }
+
+      salvarMarcas();
+      limparCampos();
+      mostrarMarcas(marcas);
+    }
+
+    function mostrarMarcas(listaMarcas) {
+      const lista = document.getElementById('marcas-list');
+
+      if (!listaMarcas.length) {
+        lista.innerHTML = '<p>Nenhuma marca cadastrada.</p>';
+        return;
+      }
+
+      let html = `<h2>Marcas Cadastradas: (${listaMarcas.length})</h2><ul>`;
+      listaMarcas.forEach((m, i) => {
+        html += `
+          <li onclick="toggleDetalhes(${i})" id="marca-${i}">
+            <strong>${m.numeroProcesso} - ${m.nome}</strong>
+            <div class="detalhes" id="detalhes-${i}" style="display:none;">
+              <p><strong>Titular:</strong> ${m.titular}</p>
+              <p><strong>Classe:</strong> ${m.classe}</p>
+              <p><strong>Especificações:</strong> ${m.especificacoes}</p>
+              <p><strong>Status:</strong> ${m.status}</p>
+              <p><strong>Observações:</strong> ${m.observacoes || '-'}</p>
+            </div>
+          </li>
+        `;
+      });
+      html += '</ul>';
+
+      lista.innerHTML = html;
+    }
+
+    function toggleDetalhes(index) {
+      const detalhes = document.getElementById(`detalhes-${index}`);
+      if (detalhes.style.display === 'none') {
+        detalhes.style.display = 'block';
+      } else {
+        detalhes.style.display = 'none';
+      }
+    }
+
+    function buscarMarca() {
+      const termo = document.getElementById('buscaMarca').value.trim().toLowerCase();
+
+      if (!termo) {
+        mostrarMarcas(marcas);
+        return;
+      }
+
+      const filtradas = marcas.filter(m =>
+        m.numeroProcesso.toLowerCase().includes(termo) ||
+        m.nome.toLowerCase().includes(termo) ||
+        m.titular.toLowerCase().includes(termo) ||
+        m.classe.toLowerCase().includes(termo) ||
+        m.especificacoes.toLowerCase().includes(termo) ||
+        m.status.toLowerCase().includes(termo) ||
+        (m.observacoes && m.observacoes.toLowerCase().includes(termo))
+      );
+
+      mostrarMarcas(filtradas);
+    }
+
+    // Inicializar
+    carregarMarcas();
+    mostrarMarcas(marcas);
+  </script>
+
+</body>
+</html>
+
+
+
