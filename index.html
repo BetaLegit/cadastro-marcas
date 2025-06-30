@@ -61,7 +61,7 @@
       background-color: #5a6268;
     }
     #marcas-list {
-      margin-top: 30px;
+      margin-top: 10px;
       background: #fff;
       padding: 15px;
       border-radius: 6px;
@@ -80,6 +80,9 @@
       border: 1px solid #ddd;
       cursor: pointer;
       position: relative;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
     }
     li:hover {
       background-color: #e9f0ff;
@@ -92,6 +95,48 @@
       color: #444;
       background-color: #f9f9f9;
       border-radius: 4px;
+      width: 100%;
+    }
+    .acoes {
+      position: relative;
+      margin-left: 10px;
+      user-select: none;
+    }
+    .icone-tres-pontos {
+      font-size: 22px;
+      cursor: pointer;
+      padding: 0 5px;
+      color: #666;
+    }
+    .menu-acoes {
+      position: absolute;
+      top: 24px;
+      right: 0;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      display: none;
+      z-index: 100;
+      min-width: 100px;
+    }
+    .menu-acoes button {
+      width: 100%;
+      background: none;
+      border: none;
+      padding: 8px 12px;
+      text-align: left;
+      font-size: 14px;
+      cursor: pointer;
+      color: #333;
+      border-bottom: 1px solid #eee;
+      transition: background-color 0.2s;
+    }
+    .menu-acoes button:last-child {
+      border-bottom: none;
+    }
+    .menu-acoes button:hover {
+      background-color: #f0f0f0;
     }
   </style>
 </head>
@@ -117,12 +162,22 @@
   <label for="status">Status:</label>
   <select id="status">
     <option value="Aberto">Aberto</option>
-    <option value="Fechado">Fechado</option>
+    <option value="Em Negociação">Em Negociação</option>
+    <option value="Aprovado">Aprovado</option>
     <option value="Negado">Negado</option>
   </select>
 
   <label for="observacoes">Observações:</label>
   <textarea id="observacoes" rows="2" placeholder="Digite observações (opcional)"></textarea>
+
+  <label for="vendedor">Vendedor:</label>
+  <input type="text" id="vendedor" placeholder="Digite o vendedor" />
+
+  <label for="comprador">Comprador:</label>
+  <input type="text" id="comprador" placeholder="Digite o comprador" />
+
+  <label for="arquivo">Upload de Arquivo:</label>
+  <input type="file" id="arquivo" />
 
   <div class="botoes-container">
     <button id="btnCadastrar" onclick="cadastrarMarca()">Cadastrar Marca</button>
@@ -131,6 +186,15 @@
 
   <h2>Buscar Marca</h2>
   <input type="text" id="buscaMarca" placeholder="Digite termo para buscar em qualquer campo" oninput="buscarMarca()" />
+
+  <label for="filtroStatus">Filtrar por Status:</label>
+  <select id="filtroStatus" onchange="filtrarPorStatus()">
+    <option value="Todos">Todos</option>
+    <option value="Aberto">Aberto</option>
+    <option value="Em Negociação">Em Negociação</option>
+    <option value="Aprovado">Aprovado</option>
+    <option value="Negado">Negado</option>
+  </select>
 
   <div id="marcas-list"></div>
 
@@ -155,6 +219,10 @@
       document.getElementById('especificacoes').value = '';
       document.getElementById('status').value = 'Aberto';
       document.getElementById('observacoes').value = '';
+      document.getElementById('vendedor').value = '';
+      document.getElementById('comprador').value = '';
+      document.getElementById('arquivo').value = '';
+      document.getElementById('filtroStatus').value = 'Todos';
     }
 
     function cadastrarMarca() {
@@ -165,26 +233,71 @@
       const especificacoes = document.getElementById('especificacoes').value.trim();
       const status = document.getElementById('status').value;
       const observacoes = document.getElementById('observacoes').value.trim();
+      const vendedor = document.getElementById('vendedor').value.trim();
+      const comprador = document.getElementById('comprador').value.trim();
+      const arquivoInput = document.getElementById('arquivo');
 
       if (!processo || !nome || !titular || !classe || !especificacoes || !status) {
         alert('Por favor, preencha todos os campos obrigatórios.');
         return;
       }
 
-      if (indiceEdicao > -1) {
-        marcas[indiceEdicao] = { numeroProcesso: processo, nome, titular, classe, especificacoes, status, observacoes };
-        indiceEdicao = -1;
-        document.getElementById('btnCadastrar').textContent = 'Cadastrar Marca';
-        document.getElementById('btnCancelar').style.display = 'none';
-        alert('Marca atualizada com sucesso!');
-      } else {
-        marcas.push({ numeroProcesso: processo, nome, titular, classe, especificacoes, status, observacoes });
-        alert('Marca cadastrada com sucesso!');
+      function processarArquivo(file, callback) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          callback(e.target.result);
+        };
+        reader.readAsDataURL(file);
       }
 
-      salvarMarcas();
-      limparCampos();
-      mostrarMarcas(marcas);
+      function salvarMarcaComArquivo(base64 = '', nomeArquivo = '') {
+        if (indiceEdicao > -1) {
+          marcas[indiceEdicao] = {
+            numeroProcesso: processo,
+            nome,
+            titular,
+            classe,
+            especificacoes,
+            status,
+            observacoes,
+            vendedor,
+            comprador,
+            arquivoBase64: base64 || marcas[indiceEdicao].arquivoBase64 || '',
+            arquivoNome: nomeArquivo || marcas[indiceEdicao].arquivoNome || ''
+          };
+          indiceEdicao = -1;
+          document.getElementById('btnCadastrar').textContent = 'Cadastrar Marca';
+          document.getElementById('btnCancelar').style.display = 'none';
+          alert('Marca atualizada com sucesso!');
+        } else {
+          marcas.push({
+            numeroProcesso: processo,
+            nome,
+            titular,
+            classe,
+            especificacoes,
+            status,
+            observacoes,
+            vendedor,
+            comprador,
+            arquivoBase64: base64,
+            arquivoNome: nomeArquivo
+          });
+          alert('Marca cadastrada com sucesso!');
+        }
+        salvarMarcas();
+        limparCampos();
+        filtrarPorStatus(); // Atualiza a lista já filtrando pelo filtro atual
+      }
+
+      if (arquivoInput.files.length > 0) {
+        const file = arquivoInput.files[0];
+        processarArquivo(file, function(base64) {
+          salvarMarcaComArquivo(base64, file.name);
+        });
+      } else {
+        salvarMarcaComArquivo();
+      }
     }
 
     function mostrarMarcas(listaMarcas) {
@@ -198,14 +311,26 @@
       let html = `<h2>Marcas Cadastradas: (${listaMarcas.length})</h2><ul>`;
       listaMarcas.forEach((m, i) => {
         html += `
-          <li onclick="toggleDetalhes(${i})" id="marca-${i}">
-            <strong>${m.numeroProcesso} - ${m.nome}</strong>
-            <div class="detalhes" id="detalhes-${i}" style="display:none;">
-              <p><strong>Titular:</strong> ${m.titular}</p>
-              <p><strong>Classe:</strong> ${m.classe}</p>
-              <p><strong>Especificações:</strong> ${m.especificacoes}</p>
-              <p><strong>Status:</strong> ${m.status}</p>
-              <p><strong>Observações:</strong> ${m.observacoes || '-'}</p>
+          <li id="marca-${i}">
+            <div onclick="toggleDetalhes(${i})" style="flex:1; cursor:pointer;">
+              <strong>${m.numeroProcesso} - ${m.nome}</strong>
+              <div class="detalhes" id="detalhes-${i}" style="display:none;">
+                <p><strong>Titular:</strong> ${m.titular}</p>
+                <p><strong>Classe:</strong> ${m.classe}</p>
+                <p><strong>Especificações:</strong> ${m.especificacoes}</p>
+                <p><strong>Status:</strong> ${m.status}</p>
+                <p><strong>Observações:</strong> ${m.observacoes || '-'}</p>
+                <p><strong>Vendedor:</strong> ${m.vendedor || '-'}</p>
+                <p><strong>Comprador:</strong> ${m.comprador || '-'}</p>
+                <p><strong>Arquivo:</strong> ${m.arquivoNome ? `<a href="#" onclick="baixarArquivo(${i});event.stopPropagation();">${m.arquivoNome}</a>` : '-'}</p>
+              </div>
+            </div>
+            <div class="acoes" onclick="event.stopPropagation()">
+              <span class="icone-tres-pontos" onclick="toggleMenu(${i})">&#8942;</span>
+              <div class="menu-acoes" id="menu-${i}">
+                <button onclick="editarMarca(${i})">Editar</button>
+                <button onclick="excluirMarca(${i})">Excluir</button>
+              </div>
             </div>
           </li>
         `;
@@ -213,6 +338,9 @@
       html += '</ul>';
 
       lista.innerHTML = html;
+
+      // Fechar todos menus ao clicar fora
+      document.addEventListener('click', fecharTodosMenus);
     }
 
     function toggleDetalhes(index) {
@@ -228,7 +356,7 @@
       const termo = document.getElementById('buscaMarca').value.trim().toLowerCase();
 
       if (!termo) {
-        mostrarMarcas(marcas);
+        filtrarPorStatus();
         return;
       }
 
@@ -239,16 +367,98 @@
         m.classe.toLowerCase().includes(termo) ||
         m.especificacoes.toLowerCase().includes(termo) ||
         m.status.toLowerCase().includes(termo) ||
-        (m.observacoes && m.observacoes.toLowerCase().includes(termo))
+        (m.observacoes && m.observacoes.toLowerCase().includes(termo)) ||
+        (m.vendedor && m.vendedor.toLowerCase().includes(termo)) ||
+        (m.comprador && m.comprador.toLowerCase().includes(termo))
       );
 
       mostrarMarcas(filtradas);
     }
 
-    // Inicializar
+    function editarMarca(index) {
+      const m = marcas[index];
+      indiceEdicao = index;
+
+      document.getElementById('numeroProcesso').value = m.numeroProcesso;
+      document.getElementById('marcaNome').value = m.nome;
+      document.getElementById('titular').value = m.titular;
+      document.getElementById('classe').value = m.classe;
+      document.getElementById('especificacoes').value = m.especificacoes;
+      document.getElementById('status').value = m.status;
+      document.getElementById('observacoes').value = m.observacoes;
+      document.getElementById('vendedor').value = m.vendedor;
+      document.getElementById('comprador').value = m.comprador;
+      document.getElementById('arquivo').value = '';
+
+      document.getElementById('btnCadastrar').textContent = 'Salvar Alterações';
+      document.getElementById('btnCancelar').style.display = 'inline-block';
+
+      // Selecionar filtro para mostrar só essa marca?
+      document.getElementById('filtroStatus').value = 'Todos';
+    }
+
+    function cancelarEdicao() {
+      indiceEdicao = -1;
+      limparCampos();
+      document.getElementById('btnCadastrar').textContent = 'Cadastrar Marca';
+      document.getElementById('btnCancelar').style.display = 'none';
+      filtrarPorStatus();
+    }
+
+    function excluirMarca(index) {
+      if (confirm('Tem certeza que deseja excluir esta marca?')) {
+        marcas.splice(index, 1);
+        salvarMarcas();
+        filtrarPorStatus();
+      }
+    }
+
+    function toggleMenu(index) {
+      const menu = document.getElementById(`menu-${index}`);
+      if (menu.style.display === 'block') {
+        menu.style.display = 'none';
+      } else {
+        fecharTodosMenus();
+        menu.style.display = 'block';
+      }
+    }
+
+    function fecharTodosMenus() {
+      const menus = document.querySelectorAll('.menu-acoes');
+      menus.forEach(m => (m.style.display = 'none'));
+    }
+
+    function filtrarPorStatus() {
+      const filtro = document.getElementById('filtroStatus').value;
+      if (filtro === 'Todos') {
+        mostrarMarcas(marcas);
+      } else {
+        const filtradas = marcas.filter(m => m.status === filtro);
+        mostrarMarcas(filtradas);
+      }
+    }
+
+    function baixarArquivo(index) {
+      const marca = marcas[index];
+      if (!marca.arquivoBase64) {
+        alert('Arquivo não disponível.');
+        return;
+      }
+      const link = document.createElement('a');
+      link.href = marca.arquivoBase64;
+      link.download = marca.arquivoNome || 'arquivo';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // Inicialização
     carregarMarcas();
-    mostrarMarcas(marcas);
+    filtrarPorStatus();
   </script>
+
+</body>
+</html>
 
 </body>
 </html>
