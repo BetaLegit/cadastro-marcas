@@ -10,7 +10,13 @@ UPLOAD_FOLDER = os.path.join(os.getcwd(), 'instance')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(UPLOAD_FOLDER, 'marcas.db')}"
+
+# Usa variável de ambiente DATABASE_URL para conectar no PostgreSQL, 
+# se não definida usa SQLite local
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
+    'DATABASE_URL', 
+    f"sqlite:///{os.path.join(UPLOAD_FOLDER, 'marcas.db')}"
+)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)

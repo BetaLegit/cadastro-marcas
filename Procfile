@@ -1,1 +1,5 @@
-web: gunicorn app:app
+Flask==3.1.1
+Flask-Cors==6.0.1
+Flask-SQLAlchemy==3.1.1
+psycopg2-binary==2.9.6
+gunicorn==23.0.0
