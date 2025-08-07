@@ -135,5 +135,14 @@ def deletar_marca(numero_processo):
 def baixar_arquivo(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
+@app.route('/test-db')
+def test_db():
+    try:
+        count = Marca.query.count()
+        return jsonify({'status': 'ok', 'registros_marca': count})
+    except Exception as e:
+        return jsonify({'status': 'error', 'erro': str(e)})
+
+
 if __name__ == '__main__':
     app.run(debug=True)
